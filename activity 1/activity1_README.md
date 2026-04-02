@@ -42,7 +42,7 @@ curl -fsSL https://raw.githubusercontent.com/YOUR-USERNAME/griffith-assessment-a
 Or download and inspect first:
 
 ```bash
-wget https://raw.githubusercontent.com/rishonmathew/griffith-assessment-automarker/main/activity1/automark_activity1.sh
+wget "https://raw.githubusercontent.com/rishonmathew/griffith-assessment-automarker/main/activity%201/automark_activity1.sh"
 chmod +x automark_activity1.sh
 sudo ./automark_activity1.sh
 ```
