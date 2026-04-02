@@ -1,0 +1,12 @@
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    eth0:
+      dhcp4: true
+    eth1:
+      dhcp4: no
+      addresses: [192.168.1.254/24]
+      routes:
+        - to: 10.10.1.0/24
+          via: 192.168.1.1
