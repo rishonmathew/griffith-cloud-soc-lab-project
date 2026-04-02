@@ -30,7 +30,7 @@ Find your activity below, copy the one-liner, and run it on your VM.
 
 ### Activity 1 — DMZ Networks
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR-USERNAME/griffith-assessment-automarker/main/activity1/automark_activity1.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/rishonmathew/griffith-assessment-automarker/main/activity1/automark_activity1.sh | sudo bash
 ```
 
 > Scripts must be run with `sudo`. See the individual activity folder for full usage notes.
