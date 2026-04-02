@@ -380,15 +380,6 @@ run_ubuntu_server() {
     check_ping "192.168.1.254" "External Gateway (DMZ side)" "E5"
     check_ping "192.168.1.1"   "Internal Gateway (DMZ side)" "E5"
 
-    section "Web Server (optional — if already configured)"
-    if systemctl is-active --quiet apache2 2>/dev/null || systemctl is-active --quiet nginx 2>/dev/null; then
-        pass "Web server service is running"
-        check_curl "http://192.168.1.80" "Ubuntu Server web page" "E8"
-    else
-        info "No Apache or Nginx detected — skipping HTTP check."
-        info "This is expected if the web server is not yet part of your activity."
-    fi
-
     section "Internet Access"
     check_internet "E6"
 }
@@ -411,13 +402,6 @@ run_ubuntu_desktop() {
     section "Connectivity — DMZ"
     check_ping "192.168.1.1"  "Internal Gateway (DMZ side)" "E5"
     check_ping "192.168.1.80" "Ubuntu Server (DMZ)"         "E5"
-
-    section "Web Server Access from Internal Network (optional)"
-    if check_ping "192.168.1.80" "Ubuntu Server reachability check" "E5" &>/dev/null; then
-        check_curl "http://192.168.1.80" "Ubuntu Server web page via DMZ" "E8"
-    else
-        info "Skipping HTTP check — Ubuntu Server is not reachable yet."
-    fi
 
     section "Internet Access"
     check_internet "E6"
@@ -481,12 +465,6 @@ print_error_reference() {
     echo -e " ${YELLOW}Error E7${NC} — nftables service not running"
     echo "          Run: systemctl enable --now nftables"
     echo "          Verify: systemctl status nftables"
-    echo ""
-    echo -e " ${YELLOW}Error E8${NC} — Web server not reachable via HTTP"
-    echo "          1. Confirm the web server is installed and running on"
-    echo "             Ubuntu Server (192.168.1.80)."
-    echo "          2. Check nftables forward rules allow traffic through."
-    echo "          3. Verify routing from source VM reaches 192.168.1.80."
     echo ""
 }
 
