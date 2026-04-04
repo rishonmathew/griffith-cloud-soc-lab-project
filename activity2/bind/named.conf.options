@@ -9,6 +9,10 @@ options {
     };
     forward only;
 
+    // Force TCP for forwarded queries (Azure blocks outbound UDP port 53)
+    use-v4-udp-ports { };
+    use-v6-udp-ports { };
+
     dnssec-validation auto;
 
     listen-on { 127.0.0.1; 192.168.1.1; 10.10.1.254; };
