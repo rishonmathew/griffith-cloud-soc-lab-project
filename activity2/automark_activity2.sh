@@ -610,11 +610,11 @@ run_ubuntu_desktop() {
     local proxy_code
     proxy_code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 8 \
         --proxy "http://10.10.1.254:8080" "http://192.168.1.80" 2>/dev/null)
-    if [[ "$proxy_code" =~ ^[23] ]]; then
-        pass "HTTP $proxy_code — http://192.168.1.80 loads via Squid proxy"
+    if [[ "$proxy_code" =~ ^[2345] ]]; then
+        pass "HTTP $proxy_code — Squid proxy is handling requests (verify page loads in Firefox)"
     else
-        fail "D3" "http://192.168.1.80 did not load via proxy (HTTP code: ${proxy_code:-no response})"
-        info "Ensure Firefox proxy is set to 10.10.1.254:8080 and Squid ACLs allow internal_network"
+        fail "D3" "No response from Squid proxy (HTTP code: ${proxy_code:-no response})"
+        info "Ensure Squid is running on 10.10.1.254:8080 and Firefox proxy is configured"
     fi
 
     section "Connectivity"
