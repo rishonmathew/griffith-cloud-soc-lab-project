@@ -295,7 +295,13 @@ check_local_zone_resolves() {
     local zone_name
     zone_name=$(grep -r "^zone" /etc/bind/named.conf* 2>/dev/null | grep -v "arpa\|localhost\|hint\|0.0.127" | grep '"' | head -1 | sed 's/.*"\(.*\)".*/\1/')
 
-    if [ -z "$zone_name" ]; then
+    # Strip root zone "." if accidentally matched
+    if [ "$zone_name" = "." ] || [ -z "$zone_name" ]; then
+        # Try named.conf.local specifically
+        zone_name=$(grep "^zone" /etc/bind/named.conf.local 2>/dev/null | grep -v "arpa\|localhost\|hint" | grep '"' | head -1 | sed 's/.*"\(.*\)".*/\1/')
+    fi
+
+    if [ -z "$zone_name" ] || [ "$zone_name" = "." ]; then
         fail "$error_code" "No custom forward zone found in BIND9 config"
         info "Check /etc/bind/named.conf.local for your zone definition"
         return
@@ -353,7 +359,7 @@ check_squid_port() {
 
 check_squid_acl_internal() {
     local error_code=$1
-    if grep -q "^acl internal_network src 10.10.1.0/24" /etc/squid/squid.conf 2>/dev/null; then
+    if grep -q "acl internal_network src 10.10.1.0/24" /etc/squid/squid.conf 2>/dev/null; then
         pass "Squid ACL: internal_network defined (10.10.1.0/24)"
     else
         fail "$error_code" "Squid ACL 'internal_network src 10.10.1.0/24' not found in squid.conf"
@@ -362,7 +368,7 @@ check_squid_acl_internal() {
 
 check_squid_acl_australian() {
     local error_code=$1
-    if grep -q "^acl australian_sites dstdomain" /etc/squid/squid.conf 2>/dev/null; then
+    if grep -q "acl australian_sites dstdomain" /etc/squid/squid.conf 2>/dev/null; then
         pass "Squid ACL: australian_sites defined"
     else
         fail "$error_code" "Squid ACL 'australian_sites' not found in squid.conf"
@@ -371,7 +377,7 @@ check_squid_acl_australian() {
 
 check_squid_acl_office_hours() {
     local error_code=$1
-    if grep -q "^acl office_hours time" /etc/squid/squid.conf 2>/dev/null; then
+    if grep -q "acl office_hours time" /etc/squid/squid.conf 2>/dev/null; then
         pass "Squid ACL: office_hours defined"
     else
         fail "$error_code" "Squid ACL 'office_hours' not found in squid.conf"
@@ -380,7 +386,7 @@ check_squid_acl_office_hours() {
 
 check_squid_allow_internal() {
     local error_code=$1
-    if grep -q "^http_access allow internal_network" /etc/squid/squid.conf 2>/dev/null; then
+    if grep -q "http_access allow internal_network" /etc/squid/squid.conf 2>/dev/null; then
         pass "Squid rule: http_access allow internal_network present"
     else
         fail "$error_code" "Squid rule 'http_access allow internal_network' missing from squid.conf"
@@ -389,7 +395,7 @@ check_squid_allow_internal() {
 
 check_squid_deny_australian() {
     local error_code=$1
-    if grep -q "^http_access deny australian_sites office_hours" /etc/squid/squid.conf 2>/dev/null; then
+    if grep -q "http_access deny australian_sites office_hours" /etc/squid/squid.conf 2>/dev/null; then
         pass "Squid rule: http_access deny australian_sites office_hours present"
     else
         fail "$error_code" "Squid rule 'http_access deny australian_sites office_hours' missing"
@@ -399,8 +405,8 @@ check_squid_deny_australian() {
 check_squid_rule_order() {
     local error_code=$1
     local deny_line allow_line
-    deny_line=$(grep -n "^http_access deny australian_sites" /etc/squid/squid.conf 2>/dev/null | head -1 | cut -d: -f1)
-    allow_line=$(grep -n "^http_access allow internal_network" /etc/squid/squid.conf 2>/dev/null | head -1 | cut -d: -f1)
+    deny_line=$(grep -n "http_access deny australian_sites" /etc/squid/squid.conf 2>/dev/null | head -1 | cut -d: -f1)
+    allow_line=$(grep -n "http_access allow internal_network" /etc/squid/squid.conf 2>/dev/null | head -1 | cut -d: -f1)
 
     if [ -z "$deny_line" ] || [ -z "$allow_line" ]; then
         fail "$error_code" "Cannot verify rule order — one or both ACL rules are missing"
