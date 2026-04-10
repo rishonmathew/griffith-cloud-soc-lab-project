@@ -472,16 +472,21 @@ check_apache_modules() {
 
 check_custom_webpage() {
     local error_code=$1
-    local content
-    content=$(curl -sk --max-time 5 "http://192.168.1.80" 2>/dev/null)
-    # Check it's not the default Apache page
-    if echo "$content" | grep -qi "Apache2 Ubuntu Default Page\|It works!"; then
-        fail "$error_code" "Default Apache page still showing — custom webpage not deployed"
-        info "Replace /var/www/html/index.html with your custom page"
-    elif [ -n "$content" ]; then
-        pass "Custom webpage is being served (non-default content detected)"
+    # Check the banner div content in index.html directly
+    local banner_text
+    banner_text=$(grep -A2 'class="banner"' /var/www/html/index.html 2>/dev/null | grep -v 'class="banner"' | grep -v 'div id="about"' | grep -v "^$" | head -1 | sed "s/^[[:space:]]*//" | tr -d "\r")
+
+    if [ -z "$banner_text" ]; then
+        fail "$error_code" "Could not read banner text from /var/www/html/index.html"
+        return
+    fi
+
+    # Fail if it still has the default placeholder text
+    if echo "$banner_text" | grep -qi "Your Name\|yourname"; then
+        fail "$error_code" "Banner still contains default placeholder text: $banner_text"
+        info "Edit /var/www/html/index.html and replace \'Your Name\' with your actual name"
     else
-        fail "$error_code" "No content returned from http://192.168.1.80"
+        pass "Custom banner text detected: $banner_text"
     fi
 }
 
