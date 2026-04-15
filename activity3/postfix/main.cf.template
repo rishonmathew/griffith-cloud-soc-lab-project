@@ -1,0 +1,43 @@
+# =============================================================================
+# Postfix main.cf — Activity 3 Template
+# 7015ICT | Griffith University
+# YOURDOMAIN is replaced by setup-postfix.sh during installation
+# =============================================================================
+
+# ── Identity ──────────────────────────────────────────────────────────────────
+myhostname = mail.YOURDOMAIN
+mydomain   = YOURDOMAIN
+myorigin   = $mydomain
+
+# ── Network settings ──────────────────────────────────────────────────────────
+# Listen on all interfaces so the server accepts mail from the network
+# (without this, Postfix only accepts local connections)
+inet_interfaces = all
+inet_protocols  = ipv4
+
+# ── Local delivery ────────────────────────────────────────────────────────────
+# These domains are delivered locally — not relayed to another server
+mydestination = $myhostname, YOURDOMAIN, localhost.localdomain, localhost
+
+# ── Relay permissions ─────────────────────────────────────────────────────────
+# Hosts in these networks can send mail without authentication
+# This is why Thunderbird works without SMTP auth in this lab —
+# the Desktop (10.10.1.0/24) is in a trusted subnet
+mynetworks = 127.0.0.0/8, 192.168.1.0/24, 10.10.1.0/24
+
+# ── Mailbox format ────────────────────────────────────────────────────────────
+# Deliver to Maildir format — each message is a separate file under ~/Maildir/
+home_mailbox = Maildir/
+
+# ── Dovecot integration ───────────────────────────────────────────────────────
+# Hand off local delivery to Dovecot via LMTP socket
+# This socket is created by Dovecot in Part C — do not test delivery until
+# Part C is complete
+mailbox_transport = lmtp:unix:private/dovecot-lmtp
+
+# ── Virtual alias maps ────────────────────────────────────────────────────────
+# Maps email addresses like desktop-user@domain to system accounts like user1
+virtual_alias_maps = hash:/etc/postfix/virtual
+
+# ── Banner ────────────────────────────────────────────────────────────────────
+smtpd_banner = $myhostname ESMTP

@@ -1,0 +1,10 @@
+# =============================================================================
+# Postfix virtual alias map — Activity 3 Template
+# 7015ICT | Griffith University
+# YOURDOMAIN is replaced by setup-postfix.sh during installation
+# =============================================================================
+# Format: email-address    local-system-username
+# After editing, always run: sudo postmap /etc/postfix/virtual
+
+desktop-user@YOURDOMAIN    user1
+server-user@YOURDOMAIN     user2
