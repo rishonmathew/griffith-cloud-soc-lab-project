@@ -87,34 +87,34 @@ echo ""
 
 TMP=$(mktemp -d)
 
-download_template "dovecot.conf"       "$REPO/dovecot.conf.template"    "$TMP/dovecot.conf"
-download_template "10-mail.conf"       "$REPO/10-mail.conf.template"    "$TMP/10-mail.conf"
-download_template "10-auth.conf"       "$REPO/10-auth.conf.template"    "$TMP/10-auth.conf"
-download_template "10-ssl.conf"        "$REPO/10-ssl.conf.template"     "$TMP/10-ssl.conf"
+# Download only the 10-master.conf template — the other files are edited directly
 download_template "10-master.template" "$REPO/10-master.conf.template"  "$TMP/10-master.template"
 
 echo ""
 
-# Apply the fixed files (append to existing configs to avoid breaking other settings)
-# dovecot.conf — add protocols line if not already set
+# Apply fixed settings directly via sed — no download needed for these
+# dovecot.conf — set protocols
 if grep -q "^protocols" /etc/dovecot/dovecot.conf 2>/dev/null; then
     sed -i 's/^protocols.*/protocols = imap pop3 lmtp/' /etc/dovecot/dovecot.conf
 else
     echo "protocols = imap pop3 lmtp" >> /etc/dovecot/dovecot.conf
 fi
+echo -e "  ${GREEN}[DONE]${NC} dovecot.conf — protocols = imap pop3 lmtp"
 
-# 10-mail.conf — update mail_location and mail_privileged_group
-sed -i 's|^#*mail_location.*|mail_location = maildir:~/Maildir|' /etc/dovecot/conf.d/10-mail.conf
-sed -i 's|^#*mail_privileged_group.*|mail_privileged_group = mail|' /etc/dovecot/conf.d/10-mail.conf
+# 10-mail.conf — mail_location and mail_privileged_group
+sed -i 's|^#*\s*mail_location\s*=.*|mail_location = maildir:~/Maildir|' /etc/dovecot/conf.d/10-mail.conf
+sed -i 's|^#*\s*mail_privileged_group\s*=.*|mail_privileged_group = mail|' /etc/dovecot/conf.d/10-mail.conf
+echo -e "  ${GREEN}[DONE]${NC} 10-mail.conf — mail_location and mail_privileged_group set"
 
-# 10-auth.conf — set plaintext auth settings
-sed -i 's|^#*disable_plaintext_auth.*|disable_plaintext_auth = no|' /etc/dovecot/conf.d/10-auth.conf
-sed -i 's|^#*auth_mechanisms.*|auth_mechanisms = plain login|' /etc/dovecot/conf.d/10-auth.conf
+# 10-auth.conf — plaintext auth
+sed -i 's|^#*\s*disable_plaintext_auth\s*=.*|disable_plaintext_auth = no|' /etc/dovecot/conf.d/10-auth.conf
+sed -i 's|^#*\s*auth_mechanisms\s*=.*|auth_mechanisms = plain login|' /etc/dovecot/conf.d/10-auth.conf
+echo -e "  ${GREEN}[DONE]${NC} 10-auth.conf — disable_plaintext_auth and auth_mechanisms set"
 
 # 10-ssl.conf — disable ssl
-sed -i 's|^#*ssl = .*|ssl = no|' /etc/dovecot/conf.d/10-ssl.conf
+sed -i 's|^#*\s*ssl\s*=.*|ssl = no|' /etc/dovecot/conf.d/10-ssl.conf
+echo -e "  ${GREEN}[DONE]${NC} 10-ssl.conf — ssl = no"
 
-echo -e "  ${GREEN}[DONE]${NC} Fixed config files applied"
 echo ""
 
 # =============================================================================
