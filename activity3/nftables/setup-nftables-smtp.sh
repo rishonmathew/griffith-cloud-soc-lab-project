@@ -86,14 +86,7 @@ echo "  sender — the network is not exposed to the public internet for"
 echo "  inbound mail. Validation is done via nft list ruleset only."
 echo ""
 
-read -rp "  Apply this ruleset? (yes/no): " CONFIRM
-if [[ ! "$CONFIRM" =~ ^[Yy] ]]; then
-    echo ""
-    echo -e "${YELLOW}[CANCELLED]${NC} No changes made."
-    rm -f "$TMP"
-    exit 0
-fi
-
+echo -e "  ${YELLOW}[INFO]${NC} Applying ruleset now..."
 echo ""
 
 # Back up existing config
