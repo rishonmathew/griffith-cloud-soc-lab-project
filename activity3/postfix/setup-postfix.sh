@@ -5,6 +5,7 @@
 # prompts for student domain, substitutes it in, and places files.
 # =============================================================================
 
+exec </dev/tty
 set -e
 
 REPO="https://raw.githubusercontent.com/rishonmathew/griffith-assessment-automarker/main/activity3/postfix"
@@ -86,16 +87,17 @@ echo ""
 echo -e "${CYAN}[3/5]${NC} Review what will be installed:"
 echo ""
 echo -e "  ${BOLD}--- /etc/postfix/main.cf ---${NC}"
-sed "s/YOURDOMAIN/$STUDENT_DOMAIN/g" "$TMP_DIR/main.cf.template" | sed 's/^/  /'
+sed "s/DOMAIN/$STUDENT_DOMAIN/g" "$TMP_DIR/main.cf.template" | sed 's/^/  /'
 echo ""
 echo -e "  ${BOLD}--- /etc/postfix/virtual ---${NC}"
-sed "s/YOURDOMAIN/$STUDENT_DOMAIN/g" "$TMP_DIR/virtual.template" | sed 's/^/  /'
+sed "s/DOMAIN/$STUDENT_DOMAIN/g" "$TMP_DIR/virtual.template" | sed 's/^/  /'
 echo ""
 
 read -rp "  Does this look correct? (yes/no): " CONFIRM
 if [[ ! "$CONFIRM" =~ ^[Yy] ]]; then
     echo ""
     echo -e "${YELLOW}[CANCELLED]${NC} No files were written. Edit the templates on GitHub and re-run."
+    rm -rf "$TMP_DIR"
     exit 0
 fi
 
@@ -113,21 +115,23 @@ if [ -f /etc/postfix/main.cf ]; then
     echo -e "  ${YELLOW}[BACKUP]${NC} Existing main.cf saved to /etc/postfix/main.cf.backup"
 fi
 
-# Write main.cf
-sed "s/YOURDOMAIN/$STUDENT_DOMAIN/g" "$TMP_DIR/main.cf.template" > /etc/postfix/main.cf
+# Write main.cf — substitute DOMAIN placeholder
+sed "s/DOMAIN/$STUDENT_DOMAIN/g" "$TMP_DIR/main.cf.template" > /etc/postfix/main.cf
 echo -e "  ${GREEN}[DONE]${NC} /etc/postfix/main.cf written"
 
-# Write virtual
-sed "s/YOURDOMAIN/$STUDENT_DOMAIN/g" "$TMP_DIR/virtual.template" > /etc/postfix/virtual
+# Write virtual — substitute DOMAIN placeholder
+sed "s/DOMAIN/$STUDENT_DOMAIN/g" "$TMP_DIR/virtual.template" > /etc/postfix/virtual
 echo -e "  ${GREEN}[DONE]${NC} /etc/postfix/virtual written"
 
 # Compile virtual alias database
 postmap /etc/postfix/virtual
 echo -e "  ${GREEN}[DONE]${NC} /etc/postfix/virtual.db compiled"
 
-# Clean up temp files
-rm -rf "$TMP_DIR"
+# Restart Postfix to apply new config
+systemctl restart postfix
+echo -e "  ${GREEN}[DONE]${NC} Postfix restarted"
 
+rm -rf "$TMP_DIR"
 echo ""
 
 # =============================================================================
@@ -137,7 +141,6 @@ echo ""
 echo -e "${CYAN}[5/5]${NC} Verifying configuration..."
 echo ""
 
-# Check postfix config
 echo -e "  ${BOLD}postfix check:${NC}"
 if postfix_out=$(postfix check 2>&1); then
     if [ -z "$postfix_out" ]; then
@@ -151,17 +154,16 @@ else
 fi
 
 echo ""
-
-# Check key values
 echo -e "  ${BOLD}Key settings confirmed:${NC}"
-echo -e "  myhostname      = $(postconf -h myhostname 2>/dev/null)"
-echo -e "  mydomain        = $(postconf -h mydomain 2>/dev/null)"
-echo -e "  inet_interfaces = $(postconf -h inet_interfaces 2>/dev/null)"
-echo -e "  home_mailbox    = $(postconf -h home_mailbox 2>/dev/null)"
+echo -e "  myhostname           = $(postconf -h myhostname 2>/dev/null)"
+echo -e "  mydomain             = $(postconf -h mydomain 2>/dev/null)"
+echo -e "  inet_interfaces      = $(postconf -h inet_interfaces 2>/dev/null)"
+echo -e "  home_mailbox         = $(postconf -h home_mailbox 2>/dev/null)"
+echo -e "  mailbox_transport    = $(postconf -h mailbox_transport 2>/dev/null)"
+echo -e "  virtual_alias_maps   = $(postconf -h virtual_alias_maps 2>/dev/null)"
+echo -e "  smtpd_peername_lookup= $(postconf -h smtpd_peername_lookup 2>/dev/null)"
 
 echo ""
-
-# Check virtual alias mapping
 echo -e "  ${BOLD}Virtual alias lookup:${NC}"
 RESULT1=$(postmap -q "desktop-user@${STUDENT_DOMAIN}" hash:/etc/postfix/virtual 2>/dev/null)
 RESULT2=$(postmap -q "server-user@${STUDENT_DOMAIN}" hash:/etc/postfix/virtual 2>/dev/null)
@@ -169,14 +171,20 @@ RESULT2=$(postmap -q "server-user@${STUDENT_DOMAIN}" hash:/etc/postfix/virtual 2
 if [ "$RESULT1" = "user1" ]; then
     echo -e "  ${GREEN}[PASS]${NC} desktop-user@${STUDENT_DOMAIN} → user1"
 else
-    echo -e "  ${RED}[FAIL]${NC} desktop-user@${STUDENT_DOMAIN} did not resolve to user1 (got: ${RESULT1:-nothing})"
+    echo -e "  ${RED}[FAIL]${NC} desktop-user@${STUDENT_DOMAIN} → expected user1, got: ${RESULT1:-nothing}"
 fi
 
 if [ "$RESULT2" = "user2" ]; then
     echo -e "  ${GREEN}[PASS]${NC} server-user@${STUDENT_DOMAIN} → user2"
 else
-    echo -e "  ${RED}[FAIL]${NC} server-user@${STUDENT_DOMAIN} did not resolve to user2 (got: ${RESULT2:-nothing})"
+    echo -e "  ${RED}[FAIL]${NC} server-user@${STUDENT_DOMAIN} → expected user2, got: ${RESULT2:-nothing}"
 fi
+
+echo ""
+echo -e "  ${BOLD}Listening port:${NC}"
+ss -tuln 2>/dev/null | grep -q ":25 " \
+    && echo -e "  ${GREEN}[PASS]${NC} Port 25 listening" \
+    || echo -e "  ${RED}[FAIL]${NC} Port 25 not listening — check: sudo systemctl status postfix"
 
 echo ""
 echo -e "${BOLD}═══════════════════════════════════════════════════════════════${NC}"
@@ -187,10 +195,7 @@ echo "  1. Create system users (if not done already):"
 echo "       sudo adduser user1"
 echo "       sudo adduser user2"
 echo ""
-echo "  2. Restart Postfix:"
-echo "       sudo systemctl restart postfix"
-echo ""
-echo "  3. Continue to Part C — Dovecot must be installed before"
+echo "  2. Continue to Part C — Dovecot must be installed before"
 echo "     testing end-to-end delivery (the LMTP socket doesn't"
 echo "     exist until Dovecot is configured)."
 echo ""
