@@ -192,7 +192,6 @@ check_internet() {
 # =============================================================================
 
 check_nft_service() {
-    # E4 — nftables service not active
     if systemctl is-active --quiet nftables 2>/dev/null; then
         pass "nftables service is active"
     else
@@ -206,7 +205,6 @@ get_nft_normalised() {
 }
 
 check_nft_masquerade() {
-    # E4 — masquerade rule missing
     local n
     n=$(get_nft_normalised)
     if echo "$n" | grep -qE 'oif[[:space:]]+"eth0"[[:space:]]+masquerade'; then
@@ -218,7 +216,6 @@ check_nft_masquerade() {
 }
 
 check_nft_dnat_http() {
-    # E4 — DNAT rule for port 80 missing
     local n
     n=$(get_nft_normalised)
     if echo "$n" | grep -qE 'dport[[:space:]]+(80|[{][^}]*80[^}]*[}])[[:space:]]+dnat[[:space:]]+to[[:space:]]+192\.168\.1\.80'; then
@@ -230,7 +227,6 @@ check_nft_dnat_http() {
 }
 
 check_nft_dnat_https() {
-    # E4 — DNAT rule for port 443 missing
     local n
     n=$(get_nft_normalised)
     if echo "$n" | grep -qE 'dport[[:space:]]+(443|[{][^}]*443[^}]*[}])[[:space:]]+dnat[[:space:]]+to[[:space:]]+192\.168\.1\.80'; then
@@ -242,7 +238,6 @@ check_nft_dnat_https() {
 }
 
 check_nft_forward_inbound() {
-    # E4 — forward rule for inbound DMZ traffic missing
     local n
     n=$(get_nft_normalised)
     if echo "$n" | grep -qE 'iif[[:space:]]+"eth0"[[:space:]]+oif[[:space:]]+"eth1"'; then
@@ -254,7 +249,6 @@ check_nft_forward_inbound() {
 }
 
 check_nft_forward_dmz_out() {
-    # E4 — forward rule for DMZ outbound missing
     local n
     n=$(get_nft_normalised)
     if echo "$n" | grep -qE 'iif[[:space:]]+"eth1"[[:space:]]+oif[[:space:]]+"eth0"[[:space:]]+accept'; then
@@ -266,7 +260,6 @@ check_nft_forward_dmz_out() {
 }
 
 check_ip_forwarding() {
-    # E3 — IP forwarding disabled
     local val
     val=$(sysctl -n net.ipv4.ip_forward 2>/dev/null)
     if [ "$val" = "1" ]; then
@@ -282,7 +275,6 @@ check_ip_forwarding() {
 # =============================================================================
 
 check_bind9_running() {
-    # E6 — BIND9 not running
     if systemctl is-active --quiet named 2>/dev/null || systemctl is-active --quiet bind9 2>/dev/null; then
         pass "BIND9 (named) is running"
     else
@@ -293,7 +285,6 @@ check_bind9_running() {
 }
 
 check_dnssec_validation() {
-    # E9 — DNSSEC not enforcing (dnssec-failed.org should return SERVFAIL)
     local result
     result=$(dig @127.0.0.1 dnssec-failed.org +time=5 +tries=1 2>/dev/null | grep -i "SERVFAIL\|status:")
     if echo "$result" | grep -qi "SERVFAIL"; then
@@ -305,7 +296,6 @@ check_dnssec_validation() {
 }
 
 check_dnssec_ad_flag() {
-    # E9 — DNSSEC ad flag check (warn only — Azure TCP forwarding may prevent it)
     local result
     result=$(dig @127.0.0.1 google.com +dnssec +time=5 +tries=1 2>/dev/null)
     if echo "$result" | grep -q " ad "; then
@@ -317,7 +307,6 @@ check_dnssec_ad_flag() {
 }
 
 check_local_zone_resolves() {
-    # E7 — local zone not resolving correctly
     local zone_name
     zone_name=$(grep "^zone" /etc/bind/named.conf.local 2>/dev/null \
         | grep -v "arpa\|localhost\|hint" \
@@ -333,6 +322,22 @@ check_local_zone_resolves() {
 
     info "Detected zone: $zone_name"
 
+    # Validate zone file exists in the correct subdirectory
+    local zone_file="/etc/bind/zones/db.$zone_name"
+    if [ -f "$zone_file" ]; then
+        local check_result
+        check_result=$(named-checkzone "$zone_name" "$zone_file" 2>&1)
+        if echo "$check_result" | grep -q "^OK$"; then
+            pass "Zone file validates: $zone_file"
+        else
+            fail "E7" "Zone file has errors: $zone_file"
+            info "Run: sudo named-checkzone $zone_name $zone_file"
+        fi
+    else
+        fail "E7" "Zone file not found at $zone_file (E7)"
+        info "Zone files must be in /etc/bind/zones/ — check named.conf.local path"
+    fi
+
     local result
     result=$(dig @127.0.0.1 "www.$zone_name" +short +time=5 +tries=1 2>/dev/null)
     if [ "$result" = "192.168.1.80" ]; then
@@ -344,19 +349,23 @@ check_local_zone_resolves() {
 }
 
 check_reverse_lookup() {
-    # E7 — reverse zone not configured
     local result
     result=$(dig @127.0.0.1 -x 192.168.1.80 +short +time=5 +tries=1 2>/dev/null)
     if [ -n "$result" ]; then
         pass "Reverse lookup: 192.168.1.80 → $result"
     else
         fail "E7" "Reverse lookup for 192.168.1.80 returned no PTR record"
-        info "Check your reverse zone file — run: sudo named-checkzone 1.168.192.in-addr.arpa /etc/bind/zones/db.192.168.1"
+        # Also validate reverse zone file directly
+        local rev_file="/etc/bind/zones/db.192.168.1"
+        if [ -f "$rev_file" ]; then
+            info "Reverse zone file exists — run: sudo named-checkzone 1.168.192.in-addr.arpa $rev_file"
+        else
+            info "Reverse zone file not found at $rev_file"
+        fi
     fi
 }
 
 check_external_dns_forwarding() {
-    # E8 — external DNS forwarding failing (likely Azure UDP block)
     local result
     result=$(dig @127.0.0.1 google.com +short +time=8 +tries=1 2>/dev/null | head -1)
     if [ -n "$result" ]; then
@@ -373,7 +382,6 @@ check_external_dns_forwarding() {
 # =============================================================================
 
 check_squid_port() {
-    # E12 — Squid not listening on 8080
     if ss -tuln 2>/dev/null | grep -q ":8080 "; then
         pass "Squid listening on port 8080"
     else
@@ -383,7 +391,6 @@ check_squid_port() {
 }
 
 check_squid_acl_internal() {
-    # E13 — internal_network ACL missing
     if grep -q "acl internal_network src 10.10.1.0/24" /etc/squid/squid.conf 2>/dev/null; then
         pass "Squid ACL: internal_network defined (10.10.1.0/24)"
     else
@@ -392,7 +399,6 @@ check_squid_acl_internal() {
 }
 
 check_squid_acl_australian() {
-    # E13 — australian_sites ACL missing
     if grep -q "acl australian_sites dstdomain" /etc/squid/squid.conf 2>/dev/null; then
         pass "Squid ACL: australian_sites defined"
     else
@@ -401,7 +407,6 @@ check_squid_acl_australian() {
 }
 
 check_squid_acl_office_hours() {
-    # E13 — office_hours ACL missing
     if grep -q "acl office_hours time" /etc/squid/squid.conf 2>/dev/null; then
         pass "Squid ACL: office_hours defined"
     else
@@ -410,7 +415,6 @@ check_squid_acl_office_hours() {
 }
 
 check_squid_allow_internal() {
-    # E12 — allow rule for internal network missing
     if grep -q "http_access allow internal_network" /etc/squid/squid.conf 2>/dev/null; then
         pass "Squid rule: http_access allow internal_network present"
     else
@@ -419,7 +423,6 @@ check_squid_allow_internal() {
 }
 
 check_squid_deny_australian() {
-    # E13 — deny rule for Australian sites missing
     if grep -q "http_access deny australian_sites office_hours" /etc/squid/squid.conf 2>/dev/null; then
         pass "Squid rule: http_access deny australian_sites office_hours present"
     else
@@ -428,7 +431,6 @@ check_squid_deny_australian() {
 }
 
 check_squid_rule_order() {
-    # E13 — deny rule must appear before allow rule
     local deny_line allow_line
     deny_line=$(grep -n "http_access deny australian_sites" /etc/squid/squid.conf 2>/dev/null | head -1 | cut -d: -f1)
     allow_line=$(grep -n "http_access allow internal_network" /etc/squid/squid.conf 2>/dev/null | head -1 | cut -d: -f1)
@@ -451,7 +453,6 @@ check_squid_rule_order() {
 # =============================================================================
 
 check_ssl_cert_exists() {
-    # E11 — SSL cert/key files missing
     if [ -f /etc/ssl/certs/apache-selfsigned.crt ] && [ -f /etc/ssl/private/apache-selfsigned.key ]; then
         pass "SSL certificate and key files exist"
     else
@@ -461,7 +462,6 @@ check_ssl_cert_exists() {
 }
 
 check_ssl_params_conf() {
-    # E11 — ssl-params.conf missing
     if [ -f /etc/apache2/conf-available/ssl-params.conf ]; then
         pass "ssl-params.conf exists"
     else
@@ -470,7 +470,6 @@ check_ssl_params_conf() {
 }
 
 check_ssl_vhost_conf() {
-    # E11 — no virtual host on port 443
     if apache2ctl -S 2>/dev/null | grep -q ":443"; then
         pass "Apache SSL virtual host configured on port 443"
     else
@@ -480,7 +479,6 @@ check_ssl_vhost_conf() {
 }
 
 check_apache_modules() {
-    # E11 — required Apache modules not enabled
     local missing=()
     for mod in ssl headers; do
         if ! apache2ctl -M 2>/dev/null | grep -q "${mod}_module"; then
@@ -496,7 +494,6 @@ check_apache_modules() {
 }
 
 check_static_route_internal() {
-    # E10 — missing static route to 10.10.1.0/24 via 192.168.1.1
     if ip route show 2>/dev/null | grep -q "10.10.1.0/24 via 192.168.1.1"; then
         pass "Static route to 10.10.1.0/24 via 192.168.1.1 present"
     else
@@ -507,7 +504,6 @@ check_static_route_internal() {
 }
 
 check_custom_webpage() {
-    # E11 — webpage still showing default placeholder
     local content
     content=$(curl -s --max-time 5 http://localhost 2>/dev/null)
     if echo "$content" | grep -qi "Welcome to My Web Server\|welcome.*web server"; then
@@ -528,21 +524,21 @@ run_external_gateway() {
     echo -e "\n${BOLD}${CYAN}VM detected: External Gateway${NC}"
 
     section "IP Forwarding"
-    check_ip_forwarding   # E3
+    check_ip_forwarding
 
     section "Part A — nftables Service"
-    check_nft_service     # E4
+    check_nft_service
 
     section "Part A — NAT Masquerade"
-    check_nft_masquerade  # E4
+    check_nft_masquerade
 
     section "Part A — DNAT Port Forwarding"
-    check_nft_dnat_http   # E4
-    check_nft_dnat_https  # E4
+    check_nft_dnat_http
+    check_nft_dnat_https
 
     section "Part A — Forward Rules"
-    check_nft_forward_inbound  # E4
-    check_nft_forward_dmz_out  # E4
+    check_nft_forward_inbound
+    check_nft_forward_dmz_out
 
     section "Connectivity (E5)"
     check_ping "192.168.1.1"  "Internal Gateway (DMZ side)" "E5"
@@ -552,7 +548,7 @@ run_external_gateway() {
     section "Internet Access (E5)"
     check_internet "E5"
 
-    section "Part A — Web Server Reachable via DNAT (E4/E11)"
+    section "Part A — Web Server Reachable via DNAT (E11)"
     check_http           "http://192.168.1.80"  "Ubuntu Server HTTP"  "E11"
     check_https_insecure "https://192.168.1.80" "Ubuntu Server HTTPS" "E11"
 }
@@ -561,38 +557,38 @@ run_internal_gateway() {
     echo -e "\n${BOLD}${CYAN}VM detected: Internal Gateway${NC}"
 
     section "IP Forwarding"
-    check_ip_forwarding   # E3
+    check_ip_forwarding
 
     section "Part B — BIND9 Service (E6)"
-    check_bind9_running   # E6
+    check_bind9_running
     check_port_listening "53" "BIND9" "E6"
 
     section "Part B — External DNS Forwarding (E8)"
-    check_external_dns_forwarding  # E8
+    check_external_dns_forwarding
 
     section "Part B — Local Zone Resolution (E7)"
-    check_local_zone_resolves  # E7
+    check_local_zone_resolves
 
     section "Part B — Reverse Lookup (E7)"
-    check_reverse_lookup  # E7
+    check_reverse_lookup
 
     section "Part B — DNSSEC (E9)"
-    check_dnssec_validation  # E9
-    check_dnssec_ad_flag     # E9
+    check_dnssec_validation
+    check_dnssec_ad_flag
 
     section "Part D — Squid Service (E12)"
     check_service_active "squid" "E12"
-    check_squid_port             # E12
-    check_squid_allow_internal   # E12
+    check_squid_port
+    check_squid_allow_internal
 
     section "Part D — Squid ACLs (E13)"
-    check_squid_acl_internal    # E13
-    check_squid_acl_australian  # E13
-    check_squid_acl_office_hours # E13
+    check_squid_acl_internal
+    check_squid_acl_australian
+    check_squid_acl_office_hours
 
     section "Part D — Squid Rule Order (E13)"
-    check_squid_deny_australian  # E13
-    check_squid_rule_order       # E13
+    check_squid_deny_australian
+    check_squid_rule_order
 
     section "Connectivity (E5)"
     check_ping "192.168.1.254" "External Gateway" "E5"
@@ -605,7 +601,7 @@ run_ubuntu_server() {
     echo -e "\n${BOLD}${CYAN}VM detected: Ubuntu Server${NC}"
 
     section "Static Route Check (E10)"
-    check_static_route_internal  # E10
+    check_static_route_internal
 
     section "Part C — Apache Service (E11)"
     check_service_active "apache2" "E11"
@@ -613,19 +609,19 @@ run_ubuntu_server() {
     check_port_listening "443" "Apache HTTPS" "E11"
 
     section "Part C — Apache Modules (E11)"
-    check_apache_modules  # E11
+    check_apache_modules
 
     section "Part C — SSL Configuration (E11)"
-    check_ssl_cert_exists  # E11
-    check_ssl_params_conf  # E11
-    check_ssl_vhost_conf   # E11
+    check_ssl_cert_exists
+    check_ssl_params_conf
+    check_ssl_vhost_conf
 
     section "Part C — Web Server Response (E11)"
     check_http           "http://192.168.1.80"  "Apache HTTP"  "E11"
     check_https_insecure "https://192.168.1.80" "Apache HTTPS" "E11"
 
     section "Part C — Custom Webpage (E11)"
-    check_custom_webpage  # E11
+    check_custom_webpage
 
     section "Connectivity (E5)"
     check_ping "192.168.1.254" "External Gateway"            "E5"
