@@ -34,7 +34,7 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # Ensure stdin works even if script was piped
-exec </dev/tty 2>/dev/null || true
+if [ ! -t 0 ]; then exec < /dev/tty; fi
 
 # =============================================================================
 # Step 1 — Show current ruleset

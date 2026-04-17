@@ -6,7 +6,7 @@
 # so they understand what each setting does.
 # =============================================================================
 
-exec </dev/tty
+set -e
 
 REPO="https://raw.githubusercontent.com/rishonmathew/griffith-assessment-automarker/main/activity3/dovecot"
 
@@ -24,17 +24,25 @@ echo -e "${BOLD} 7015ICT | Griffith University${NC}"
 echo -e "${BOLD}═══════════════════════════════════════════════════════════════${NC}"
 echo ""
 
+# --- Enforce sudo ---
 if [ "$EUID" -ne 0 ]; then
     echo -e "${RED}[ERROR]${NC} Run this script with sudo: sudo bash setup-dovecot.sh"
     exit 1
 fi
 
+# =============================================================================
+# Helper — download a template
+# =============================================================================
 download_template() {
-    local name=$1 url=$2 dest=$3
+    local name=$1
+    local url=$2
+    local dest=$3
+
     if ! curl -fsSL "$url" -o "$dest" 2>/dev/null; then
         echo -e "${RED}[ERROR]${NC} Could not download $name from GitHub."
         echo "        URL: $url"
-        echo "        Check your internet connection."
+        echo "        Check your internet connection or copy the config manually"
+        echo "        from the Activity 3 guide."
         exit 1
     fi
     echo -e "  ${GREEN}[DONE]${NC} $name downloaded"
@@ -60,72 +68,53 @@ if [ -n "$MISSING" ]; then
 else
     echo -e "  ${GREEN}[DONE]${NC} All Dovecot packages already installed"
 fi
+
 echo ""
 
 # =============================================================================
-# Step 2 — Apply fixed config files
+# Step 2 — Download and apply fixed config files
 # =============================================================================
-echo -e "${CYAN}[2/6]${NC} Applying fixed config files..."
+echo -e "${CYAN}[2/6]${NC} Downloading and applying config files..."
 echo ""
-echo "  These files have fixed values for this lab — applied directly:"
+echo "  The following files have fixed values for this lab and require"
+echo "  no student input — they are applied directly:"
 echo ""
-echo "    dovecot.conf     → protocols = imap pop3 lmtp"
-echo "    10-mail.conf     → mail_location = maildir:~/Maildir"
-echo "    10-auth.conf     → disable_plaintext_auth = no, auth_username_format = %Ln"
-echo "    10-ssl.conf      → ssl = no"
-echo "    20-lmtp.conf     → auth_username_format = %Ln  (LMTP delivery fix)"
+echo "    /etc/dovecot/dovecot.conf    → protocols = imap pop3 lmtp"
+echo "    conf.d/10-mail.conf          → mail_location = maildir:~/Maildir"
+echo "    conf.d/10-auth.conf          → disable_plaintext_auth = no"
+echo "    conf.d/10-ssl.conf           → ssl = no"
 echo ""
 
 TMP=$(mktemp -d)
-download_template "10-master.template" "$REPO/10-master.conf.template" "$TMP/10-master.template"
+
+# Download only the 10-master.conf template — the other files are edited directly
+download_template "10-master.template" "$REPO/10-master.conf.template"  "$TMP/10-master.template"
+
 echo ""
 
-# dovecot.conf
+# Apply fixed settings directly via sed — no download needed for these
+# dovecot.conf — set protocols
 if grep -q "^protocols" /etc/dovecot/dovecot.conf 2>/dev/null; then
     sed -i 's/^protocols.*/protocols = imap pop3 lmtp/' /etc/dovecot/dovecot.conf
 else
     echo "protocols = imap pop3 lmtp" >> /etc/dovecot/dovecot.conf
 fi
-echo -e "  ${GREEN}[DONE]${NC} dovecot.conf"
+echo -e "  ${GREEN}[DONE]${NC} dovecot.conf — protocols = imap pop3 lmtp"
 
-# 10-mail.conf
+# 10-mail.conf — mail_location and mail_privileged_group
 sed -i 's|^#*\s*mail_location\s*=.*|mail_location = maildir:~/Maildir|' /etc/dovecot/conf.d/10-mail.conf
 sed -i 's|^#*\s*mail_privileged_group\s*=.*|mail_privileged_group = mail|' /etc/dovecot/conf.d/10-mail.conf
-echo -e "  ${GREEN}[DONE]${NC} 10-mail.conf"
+echo -e "  ${GREEN}[DONE]${NC} 10-mail.conf — mail_location and mail_privileged_group set"
 
-# 10-auth.conf
+# 10-auth.conf — plaintext auth
 sed -i 's|^#*\s*disable_plaintext_auth\s*=.*|disable_plaintext_auth = no|' /etc/dovecot/conf.d/10-auth.conf
 sed -i 's|^#*\s*auth_mechanisms\s*=.*|auth_mechanisms = plain login|' /etc/dovecot/conf.d/10-auth.conf
-if grep -q "^auth_username_format" /etc/dovecot/conf.d/10-auth.conf; then
-    sed -i 's|^auth_username_format.*|auth_username_format = %Ln|' /etc/dovecot/conf.d/10-auth.conf
-else
-    echo "auth_username_format = %Ln" >> /etc/dovecot/conf.d/10-auth.conf
-fi
-echo -e "  ${GREEN}[DONE]${NC} 10-auth.conf (includes auth_username_format = %Ln)"
+echo -e "  ${GREEN}[DONE]${NC} 10-auth.conf — disable_plaintext_auth and auth_mechanisms set"
 
-# 10-ssl.conf
+# 10-ssl.conf — disable ssl
 sed -i 's|^#*\s*ssl\s*=.*|ssl = no|' /etc/dovecot/conf.d/10-ssl.conf
-echo -e "  ${GREEN}[DONE]${NC} 10-ssl.conf"
+echo -e "  ${GREEN}[DONE]${NC} 10-ssl.conf — ssl = no"
 
-# 20-lmtp.conf — KEY FIX: strips @domain from LMTP recipient so Dovecot
-# finds local user 'user1' instead of failing on 'user1@example7015ict.com'
-cat > /etc/dovecot/conf.d/20-lmtp.conf << 'EOF'
-# =============================================================================
-# 20-lmtp.conf — Activity 3 — Griffith University
-# =============================================================================
-# auth_username_format = %Ln strips the @domain from the LMTP recipient.
-#
-# Without this: Postfix sends 'user1@example.com' via LMTP
-#               Dovecot looks for system user 'user1@example.com' → 550 not found
-#
-# With this:    Dovecot strips domain → looks for 'user1' → delivered ✓
-# =============================================================================
-protocol lmtp {
-  postmaster_address = postmaster@localhost
-  auth_username_format = %Ln
-}
-EOF
-echo -e "  ${GREEN}[DONE]${NC} 20-lmtp.conf (LMTP domain-strip fix)"
 echo ""
 
 # =============================================================================
@@ -133,70 +122,95 @@ echo ""
 # =============================================================================
 echo -e "${CYAN}[3/6]${NC} Configure 10-master.conf — Socket Settings"
 echo ""
-echo "  These sockets allow Postfix and Dovecot to communicate."
-echo "  Without them, mail delivery will not work."
+echo "  The 10-master.conf file defines the Unix sockets that connect"
+echo "  Postfix and Dovecot. You will be asked to enter each value."
+echo "  Read the explanation for each one before answering."
 echo ""
-echo -e "  ${YELLOW}Press Enter to accept the default shown in [brackets].${NC}"
+echo -e "  ${YELLOW}Press Enter to use the correct answer shown in [brackets].${NC}"
 echo ""
 
+# --- IMAP port ---
 echo -e "  ${BOLD}IMAP listener port${NC}"
-echo "  Standard IMAP port — Thunderbird connects here."
+echo "  Dovecot listens for IMAP connections on this port."
+echo "  Standard IMAP port is 143. Thunderbird will connect here."
 read -rp "  Enter IMAP port [143]: " IMAP_PORT
 IMAP_PORT=${IMAP_PORT:-143}
+if [ "$IMAP_PORT" != "143" ]; then
+    echo -e "  ${YELLOW}[NOTE]${NC} Non-standard port entered: $IMAP_PORT"
+    echo "         Standard is 143 — make sure Thunderbird matches."
+fi
 echo ""
 
-echo -e "  ${BOLD}LMTP socket mode${NC}"
-echo "  How Postfix hands mail to Dovecot for local delivery."
-echo "  0600 = only the owner can read/write (keeps socket private to postfix)."
+# --- LMTP socket mode ---
+echo -e "  ${BOLD}LMTP socket mode (dovecot-lmtp)${NC}"
+echo "  This socket is used by Postfix to hand mail to Dovecot."
+echo "  mode = 0600 means only the owner (postfix) can read/write."
+echo "  This prevents other system users from injecting mail directly."
 read -rp "  Enter LMTP socket mode [0600]: " LMTP_MODE
 LMTP_MODE=${LMTP_MODE:-0600}
+if [ "$LMTP_MODE" != "0600" ]; then
+    echo -e "  ${YELLOW}[WARN]${NC} Expected 0600 for security — got $LMTP_MODE"
+fi
 echo ""
 
-echo -e "  ${BOLD}LMTP socket user${NC}"
-echo "  Must be owned by postfix so Postfix can connect."
+# --- LMTP socket user ---
+echo -e "  ${BOLD}LMTP socket owner (user)${NC}"
+echo "  The socket must be owned by the postfix system user so"
+echo "  Postfix can write to it."
 read -rp "  Enter LMTP socket user [postfix]: " LMTP_USER
 LMTP_USER=${LMTP_USER:-postfix}
 echo ""
 
+# --- LMTP socket group ---
 echo -e "  ${BOLD}LMTP socket group${NC}"
-echo "  Same reason — Postfix needs group access too."
+echo "  The socket group should also be postfix so the Postfix"
+echo "  process can connect to it."
 read -rp "  Enter LMTP socket group [postfix]: " LMTP_GROUP
 LMTP_GROUP=${LMTP_GROUP:-postfix}
 echo ""
 
-echo -e "  ${BOLD}Auth socket mode${NC}"
-echo "  Postfix verifies user passwords through this socket."
-echo "  0666 = both postfix and dovecot can connect (wider than LMTP)."
+# --- Auth socket mode ---
+echo -e "  ${BOLD}Auth socket mode (/var/spool/postfix/private/auth)${NC}"
+echo "  This socket lets Postfix ask Dovecot to verify user passwords."
+echo "  mode = 0666 allows both postfix and dovecot to connect to it."
+echo "  Without this, Postfix cannot authenticate users."
 read -rp "  Enter auth socket mode [0666]: " AUTH_MODE
 AUTH_MODE=${AUTH_MODE:-0666}
+if [ "$AUTH_MODE" != "0666" ]; then
+    echo -e "  ${YELLOW}[WARN]${NC} Expected 0666 so Postfix can connect — got $AUTH_MODE"
+fi
 echo ""
 
-echo -e "  ${BOLD}Auth socket user${NC}"
-echo "  postfix must own this socket for credential verification."
+# --- Auth socket user ---
+echo -e "  ${BOLD}Auth socket owner (user)${NC}"
+echo "  postfix must own this socket so the Postfix process has access."
 read -rp "  Enter auth socket user [postfix]: " AUTH_USER
 AUTH_USER=${AUTH_USER:-postfix}
 echo ""
 
+# --- Auth socket group ---
 echo -e "  ${BOLD}Auth socket group${NC}"
 read -rp "  Enter auth socket group [postfix]: " AUTH_GROUP
 AUTH_GROUP=${AUTH_GROUP:-postfix}
 echo ""
 
+# --- auth-userdb mode ---
 echo -e "  ${BOLD}auth-userdb socket mode${NC}"
-echo "  Internal Dovecot socket — not used by Postfix."
-echo "  0600 = locked down to Dovecot only."
-read -rp "  Enter auth-userdb mode [0600]: " USERDB_MODE
+echo "  This is Dovecot's internal user lookup socket — not used by"
+echo "  Postfix directly. mode = 0600 restricts access to Dovecot only."
+read -rp "  Enter auth-userdb socket mode [0600]: " USERDB_MODE
 USERDB_MODE=${USERDB_MODE:-0600}
 echo ""
 
-echo -e "  ${BOLD}auth-userdb socket user${NC}"
-echo "  Owned by dovecot (not postfix) — internal Dovecot use only."
-read -rp "  Enter auth-userdb user [dovecot]: " USERDB_USER
+# --- auth-userdb user ---
+echo -e "  ${BOLD}auth-userdb socket owner${NC}"
+echo "  This socket is owned by the dovecot system user."
+read -rp "  Enter auth-userdb socket user [dovecot]: " USERDB_USER
 USERDB_USER=${USERDB_USER:-dovecot}
 echo ""
 
 # =============================================================================
-# Step 4 — Build, preview, confirm, write 10-master.conf
+# Step 4 — Build and show 10-master.conf, then confirm
 # =============================================================================
 echo -e "${CYAN}[4/6]${NC} Building 10-master.conf with your values..."
 echo ""
@@ -213,31 +227,37 @@ MASTER_CONF=$(sed \
     -e "s/USERDB_USER/$USERDB_USER/g" \
     "$TMP/10-master.template")
 
-echo -e "  ${BOLD}--- 10-master.conf additions preview ---${NC}"
+echo -e "  ${BOLD}--- /etc/dovecot/conf.d/10-master.conf (will be appended) ---${NC}"
 echo "$MASTER_CONF" | sed 's/^/  /'
 echo ""
 
 read -rp "  Do these values look correct? (yes/no): " CONFIRM
 if [[ ! "$CONFIRM" =~ ^[Yy] ]]; then
-    echo -e "${YELLOW}[CANCELLED]${NC} No changes written. Re-run to try again."
+    echo ""
+    echo -e "${YELLOW}[CANCELLED]${NC} No changes written. Re-run the script to try again."
     rm -rf "$TMP"
     exit 0
 fi
+
 echo ""
 
+# Apply 10-master.conf — append our service blocks to the existing file
+# (the existing file has many other service definitions we must not overwrite)
 cp /etc/dovecot/conf.d/10-master.conf /etc/dovecot/conf.d/10-master.conf.backup
 echo "" >> /etc/dovecot/conf.d/10-master.conf
 echo "# --- Activity 3 additions below ---" >> /etc/dovecot/conf.d/10-master.conf
 echo "$MASTER_CONF" >> /etc/dovecot/conf.d/10-master.conf
-echo -e "  ${GREEN}[DONE]${NC} 10-master.conf updated (backup: 10-master.conf.backup)"
+
+echo -e "  ${GREEN}[DONE]${NC} 10-master.conf updated (backup at 10-master.conf.backup)"
 echo ""
 
+# Clean up
 rm -rf "$TMP"
 
 # =============================================================================
-# Step 5 — Create Maildir directories
+# Step 5 — Create Maildir directories for users
 # =============================================================================
-echo -e "${CYAN}[5/6]${NC} Creating Maildir directories..."
+echo -e "${CYAN}[5/6]${NC} Creating Maildir directories for user1 and user2..."
 echo ""
 
 for USERNAME in user1 user2; do
@@ -246,60 +266,67 @@ for USERNAME in user1 user2; do
         chown -R "$USERNAME":"$USERNAME" /home/"$USERNAME"/Maildir
         echo -e "  ${GREEN}[DONE]${NC} /home/$USERNAME/Maildir created"
     else
-        echo -e "  ${YELLOW}[SKIP]${NC} User $USERNAME not found — create with: sudo adduser $USERNAME"
+        echo -e "  ${YELLOW}[SKIP]${NC} User $USERNAME does not exist — create with sudo adduser $USERNAME first"
     fi
 done
+
 echo ""
 
 # =============================================================================
-# Step 6 — Restart and verify
+# Step 6 — Restart services and verify
 # =============================================================================
-echo -e "${CYAN}[6/6]${NC} Restarting services and verifying..."
+echo -e "${CYAN}[6/6]${NC} Restarting Dovecot and Postfix..."
 echo ""
 
 systemctl restart dovecot
 systemctl restart postfix
 systemctl enable dovecot
 
+echo ""
 echo -e "  ${BOLD}Service status:${NC}"
-systemctl is-active --quiet dovecot \
-    && echo -e "  ${GREEN}[PASS]${NC} dovecot is active" \
-    || echo -e "  ${RED}[FAIL]${NC} dovecot failed — run: sudo journalctl -u dovecot | tail -20"
+if systemctl is-active --quiet dovecot; then
+    echo -e "  ${GREEN}[PASS]${NC} dovecot is active"
+else
+    echo -e "  ${RED}[FAIL]${NC} dovecot failed to start"
+    echo "         Run: sudo journalctl -u dovecot --no-pager | tail -20"
+fi
 
-systemctl is-active --quiet postfix \
-    && echo -e "  ${GREEN}[PASS]${NC} postfix is active" \
-    || echo -e "  ${RED}[FAIL]${NC} postfix failed"
+if systemctl is-active --quiet postfix; then
+    echo -e "  ${GREEN}[PASS]${NC} postfix is active"
+else
+    echo -e "  ${RED}[FAIL]${NC} postfix failed to start"
+fi
 
 echo ""
-echo -e "  ${BOLD}Listening ports:${NC}"
+echo -e "  ${BOLD}Port verification:${NC}"
 for PORT in 25 143 110; do
-    ss -tuln 2>/dev/null | grep -q ":$PORT " \
-        && echo -e "  ${GREEN}[PASS]${NC} Port $PORT listening" \
-        || echo -e "  ${RED}[FAIL]${NC} Port $PORT not listening"
+    if ss -tuln 2>/dev/null | grep -q ":$PORT "; then
+        echo -e "  ${GREEN}[PASS]${NC} Port $PORT is listening"
+    else
+        echo -e "  ${RED}[FAIL]${NC} Port $PORT not listening — check service status"
+    fi
 done
 
 echo ""
-echo -e "  ${BOLD}Postfix/Dovecot sockets:${NC}"
+echo -e "  ${BOLD}Socket verification:${NC}"
 for SOCK in dovecot-lmtp auth; do
-    [ -e "/var/spool/postfix/private/$SOCK" ] \
-        && echo -e "  ${GREEN}[PASS]${NC} /var/spool/postfix/private/$SOCK" \
-        || echo -e "  ${RED}[FAIL]${NC} Missing: /var/spool/postfix/private/$SOCK"
+    if [ -e "/var/spool/postfix/private/$SOCK" ]; then
+        echo -e "  ${GREEN}[PASS]${NC} Socket exists: /var/spool/postfix/private/$SOCK"
+    else
+        echo -e "  ${RED}[FAIL]${NC} Socket missing: /var/spool/postfix/private/$SOCK"
+        echo "         → Re-check 10-master.conf service blocks and restart dovecot"
+    fi
 done
 
 echo ""
 echo -e "${BOLD}═══════════════════════════════════════════════════════════════${NC}"
-echo -e "${BOLD} Dovecot setup complete!${NC}"
+echo -e "${BOLD} Next step — test end-to-end delivery:${NC}"
 echo -e "${BOLD}═══════════════════════════════════════════════════════════════${NC}"
 echo ""
-echo "  NEXT STEPS:"
-echo "  1. Ensure users exist:  sudo adduser user1  /  sudo adduser user2"
-echo "  2. Test delivery from server:"
-echo '       echo "Test" | mail -s "Test" -r server-user@YOURDOMAIN desktop-user@YOURDOMAIN'
-echo "  3. Check inbox:  sudo ls -la /home/user1/Maildir/new/"
+echo '  echo "Test email" | mail -s "Test" \'
+echo '    -r server-user@yourdomain.com \'
+echo '    desktop-user@yourdomain.com'
 echo ""
-echo "  Thunderbird settings (Ubuntu Desktop):"
-echo "    Incoming IMAP: 192.168.1.80 | port 143 | security: None | user: user1"
-echo "    Outgoing SMTP: 192.168.1.80 | port 25  | security: None | user: user1"
-echo "    Authentication: Password, transmitted insecurely"
-echo "    Password: password"
+echo "  Then check: ls -la /home/user1/Maildir/new/"
+echo "  And:        sudo tail -f /var/log/mail.log"
 echo ""
