@@ -1,0 +1,35 @@
+# Dovecot 10-master.conf — Activity 3
+# 7015ICT | Griffith University
+#
+# This file defines the Unix sockets that Postfix uses to communicate
+# with Dovecot. Both sockets MUST exist or mail delivery will silently fail.
+#
+# LMTP socket — Postfix hands local mail to Dovecot here
+# Auth socket — Postfix asks Dovecot to verify user credentials here
+
+service imap-login {
+  inet_listener imap {
+    port = IMAP_PORT
+  }
+}
+
+service lmtp {
+  unix_listener /var/spool/postfix/private/dovecot-lmtp {
+    mode = LMTP_MODE
+    user = LMTP_USER
+    group = LMTP_GROUP
+  }
+}
+
+service auth {
+  unix_listener /var/spool/postfix/private/auth {
+    mode = AUTH_MODE
+    user = AUTH_USER
+    group = AUTH_GROUP
+  }
+  unix_listener auth-userdb {
+    mode = USERDB_MODE
+    user = USERDB_USER
+  }
+  user = $default_internal_user
+}
