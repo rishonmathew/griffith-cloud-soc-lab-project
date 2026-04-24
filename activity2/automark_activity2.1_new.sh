@@ -1,12 +1,12 @@
 #!/bin/bash
 # =============================================================================
-# Automarking Script - Activity 2: NAT, SSL, Proxy
+# Automarking Script - Activity 2.1: NAT, SSL, Proxy
 # 3821ICT | Griffith University
 # =============================================================================
 # Run this script on any of the four lab VMs after completing the activity.
 # The script will auto-detect which VM it is running on and perform the
 # appropriate checks. Any failures are reported as E-codes matching the
-# Troubleshooting section of the Activity 2 guide.
+# Troubleshooting section of the Activity 2.1 guide.
 #
 # Error Code Reference:
 #   E1  — IP address wrong or missing
@@ -19,14 +19,14 @@
 #   E12 — Squid not running or not on port 8080
 #   E13 — Australian sites not blocked by Squid
 #
-# Usage: sudo ./automark_activity2.sh
+# Usage: sudo ./automark_activity2.1.sh
 # =============================================================================
 
 # --- Enforce root ---
 if [ "$EUID" -ne 0 ]; then
     echo ""
     echo "  [ERROR] This script must be run with sudo."
-    echo "          Usage: sudo ./automark_activity2.sh"
+    echo "          Usage: sudo ./automark_activity2.1.sh"
     echo ""
     exit 1
 fi
@@ -56,7 +56,7 @@ fail() {
     local code=$1
     local msg=$2
     echo -e "  ${RED}[FAIL]${NC} $msg"
-    echo -e "         ${YELLOW}→ Error $code — see Troubleshooting section of Activity 2 guide${NC}"
+    echo -e "         ${YELLOW}→ Error $code — see Troubleshooting section of Activity 2.1 guide${NC}"
     ERRORS+=("$code")
     ((FAIL++))
 }
@@ -550,11 +550,11 @@ print_summary() {
         unique_errors=$(printf '%s\n' "${ERRORS[@]}" | sort -u | tr '\n' ' ')
         echo ""
         echo -e "  ${RED}${BOLD}Error codes: $unique_errors${NC}"
-        echo -e "  ${YELLOW}Look up each code in Section 8 of the Activity 2 guide.${NC}"
+        echo -e "  ${YELLOW}Look up each code in Section 8 of the Activity 2.1 guide.${NC}"
         echo ""
     else
         echo ""
-        echo -e "  ${GREEN}${BOLD}All checks passed! Activity 2 configuration looks correct.${NC}"
+        echo -e "  ${GREEN}${BOLD}All checks passed! Activity 2.1 configuration looks correct.${NC}"
         echo ""
     fi
 }
@@ -565,7 +565,7 @@ print_summary() {
 
 echo ""
 echo -e "${BOLD}═══════════════════════════════════════════════════════════════${NC}"
-echo -e "${BOLD} Activity 2 Automarker — NAT, SSL & Proxy${NC}"
+echo -e "${BOLD} Activity 2.1 Automarker — NAT, SSL & Proxy${NC}"
 echo -e "${BOLD} 3821ICT | Griffith University${NC}"
 echo -e "${BOLD}═══════════════════════════════════════════════════════════════${NC}"
 
@@ -589,7 +589,7 @@ case "$VM" in
         echo "        Your current addresses:"
         ip -brief addr show 2>/dev/null | sed 's/^/          /'
         echo ""
-        echo -e "        ${YELLOW}If your IPs look correct, refer to E1 in the Activity 2 Troubleshooting guide.${NC}"
+        echo -e "        ${YELLOW}If your IPs look correct, refer to E1 in the Activity 2.1 Troubleshooting guide.${NC}"
         echo ""
         exit 1
         ;;
