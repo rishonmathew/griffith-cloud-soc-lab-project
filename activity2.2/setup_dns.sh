@@ -70,18 +70,18 @@ echo -e "[3/6] Creating zone definitions..."
 cat > /etc/bind/named.conf.local << EOF
 zone "$DOMAIN" {
     type master;
-    file "/etc/bind/db.$DOMAIN";
+    file "/etc/bind/zones/db.$DOMAIN";
 };
 
 zone "1.168.192.in-addr.arpa" {
     type master;
-    file "/etc/bind/db.192.168.1";
+    file "/etc/bind/zones/db.192.168.1";
 };
 EOF
 echo -e "      ${GREEN}[DONE]${NC} Zone definitions created"
 
 echo -e "[4/6] Creating forward zone file..."
-cat > /etc/bind/db.$DOMAIN << EOF
+cat > /etc/bind/zones/db.$DOMAIN << EOF
 ;
 ; BIND forward zone file for $DOMAIN
 ;
@@ -102,7 +102,7 @@ EOF
 echo -e "      ${GREEN}[DONE]${NC} Forward zone file created: /etc/bind/db.$DOMAIN"
 
 echo -e "[5/6] Creating reverse zone file..."
-cat > /etc/bind/db.192.168.1 << EOF
+cat > /etc/bind/zones/db.192.168.1 << EOF
 ;
 ; BIND reverse zone file for 192.168.1.0/24
 ;
@@ -127,16 +127,16 @@ if [ $? -ne 0 ]; then
     echo -e "      ${RED}[FAIL]${NC} named.conf error:"; cat /tmp/bind_err; exit 1
 fi
 
-named-checkzone "$DOMAIN" "/etc/bind/db.$DOMAIN" > /dev/null 2>&1
+named-checkzone "$DOMAIN" "/etc/bind/zones/db.$DOMAIN" > /dev/null 2>&1
 if [ $? -ne 0 ]; then
     echo -e "      ${RED}[FAIL]${NC} Forward zone file has errors:"
-    named-checkzone "$DOMAIN" "/etc/bind/db.$DOMAIN"; exit 1
+    named-checkzone "$DOMAIN" "/etc/bind/zones/db.$DOMAIN"; exit 1
 fi
 
-named-checkzone "1.168.192.in-addr.arpa" /etc/bind/db.192.168.1 > /dev/null 2>&1
+named-checkzone "1.168.192.in-addr.arpa" /etc/bind/zones/db.192.168.1 > /dev/null 2>&1
 if [ $? -ne 0 ]; then
     echo -e "      ${RED}[FAIL]${NC} Reverse zone file has errors:"
-    named-checkzone "1.168.192.in-addr.arpa" /etc/bind/db.192.168.1; exit 1
+    named-checkzone "1.168.192.in-addr.arpa" /etc/bind/zones/db.192.168.1; exit 1
 fi
 
 systemctl enable named > /dev/null 2>&1
