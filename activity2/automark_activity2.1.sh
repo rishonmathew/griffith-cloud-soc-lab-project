@@ -30,7 +30,7 @@
 if [ "$EUID" -ne 0 ]; then
     echo ""
     echo "  [ERROR] This script must be run with sudo."
-    echo "          Usage: sudo ./automark_activity2.sh"
+    echo "          Usage: sudo ./automark_activity2.1.sh"
     echo ""
     exit 1
 fi
