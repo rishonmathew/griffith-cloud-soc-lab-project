@@ -14,10 +14,10 @@
 #   E3  — IP forwarding disabled on a gateway
 #   E4  — nftables rules wrong, missing, or not applied
 #   E5  — Cannot reach another VM or subnet
-#   E10 — Ubuntu Server cannot reach internal network clients
-#   E11 — Apache not serving pages or SSL failing
-#   E12 — Squid not running or not on port 8080
-#   E13 — Australian sites not blocked by Squid
+#   E6 — Ubuntu Server cannot reach internal network clients
+#   E7 — Apache not serving pages or SSL failing
+#   E8 — Squid not running or not on port 8080
+#   E9 — Australian sites not blocked by Squid
 #
 # Usage: sudo ./automark_activity2.1.sh
 # =============================================================================
@@ -274,7 +274,7 @@ check_squid_port() {
     if ss -tuln 2>/dev/null | grep -q ":8080 "; then
         pass "Squid listening on port 8080"
     else
-        fail "E12" "Squid not listening on port 8080"
+        fail "E8" "Squid not listening on port 8080"
         info "Check http_port line in /etc/squid/squid.conf, then: sudo systemctl restart squid"
     fi
 }
@@ -283,7 +283,7 @@ check_squid_acl_internal() {
     if grep -q "acl internal_network src 10.10.1.0/24" /etc/squid/squid.conf 2>/dev/null; then
         pass "Squid ACL: internal_network defined (10.10.1.0/24)"
     else
-        fail "E13" "Squid ACL 'acl internal_network src 10.10.1.0/24' not found in squid.conf"
+        fail "E9" "Squid ACL 'acl internal_network src 10.10.1.0/24' not found in squid.conf"
     fi
 }
 
@@ -291,7 +291,7 @@ check_squid_acl_australian() {
     if grep -q "acl australian_sites dstdomain" /etc/squid/squid.conf 2>/dev/null; then
         pass "Squid ACL: australian_sites defined"
     else
-        fail "E13" "Squid ACL 'australian_sites' not found in squid.conf"
+        fail "E9" "Squid ACL 'australian_sites' not found in squid.conf"
     fi
 }
 
@@ -299,7 +299,7 @@ check_squid_acl_office_hours() {
     if grep -q "acl office_hours time" /etc/squid/squid.conf 2>/dev/null; then
         pass "Squid ACL: office_hours defined"
     else
-        fail "E13" "Squid ACL 'office_hours' not found in squid.conf"
+        fail "E9" "Squid ACL 'office_hours' not found in squid.conf"
     fi
 }
 
@@ -307,7 +307,7 @@ check_squid_allow_internal() {
     if grep -q "http_access allow internal_network" /etc/squid/squid.conf 2>/dev/null; then
         pass "Squid rule: http_access allow internal_network present"
     else
-        fail "E12" "Squid rule 'http_access allow internal_network' missing from squid.conf"
+        fail "E8" "Squid rule 'http_access allow internal_network' missing from squid.conf"
     fi
 }
 
@@ -315,7 +315,7 @@ check_squid_deny_australian() {
     if grep -q "http_access deny australian_sites office_hours" /etc/squid/squid.conf 2>/dev/null; then
         pass "Squid rule: http_access deny australian_sites office_hours present"
     else
-        fail "E13" "Squid rule 'http_access deny australian_sites office_hours' missing"
+        fail "E9" "Squid rule 'http_access deny australian_sites office_hours' missing"
     fi
 }
 
@@ -325,14 +325,14 @@ check_squid_rule_order() {
     allow_line=$(grep -n "http_access allow internal_network" /etc/squid/squid.conf 2>/dev/null | head -1 | cut -d: -f1)
 
     if [ -z "$deny_line" ] || [ -z "$allow_line" ]; then
-        fail "E13" "Cannot verify rule order — one or both ACL rules are missing"
+        fail "E9" "Cannot verify rule order — one or both ACL rules are missing"
         return
     fi
 
     if [ "$deny_line" -lt "$allow_line" ]; then
         pass "Squid ACL rule order correct (deny australian_sites before allow internal_network)"
     else
-        fail "E13" "Squid ACL rule order wrong — 'allow internal_network' appears before 'deny australian_sites'"
+        fail "E9" "Squid ACL rule order wrong — 'allow internal_network' appears before 'deny australian_sites'"
         info "The deny rule must come first otherwise Australian sites will bypass the block"
     fi
 }
@@ -345,7 +345,7 @@ check_ssl_cert_exists() {
     if [ -f /etc/ssl/certs/apache-selfsigned.crt ] && [ -f /etc/ssl/private/apache-selfsigned.key ]; then
         pass "SSL certificate and key files exist"
     else
-        fail "E11" "SSL cert or key missing"
+        fail "E7" "SSL cert or key missing"
         info "Expected: /etc/ssl/certs/apache-selfsigned.crt and /etc/ssl/private/apache-selfsigned.key"
     fi
 }
@@ -354,7 +354,7 @@ check_ssl_params_conf() {
     if [ -f /etc/apache2/conf-available/ssl-params.conf ]; then
         pass "ssl-params.conf exists"
     else
-        fail "E11" "ssl-params.conf not found in /etc/apache2/conf-available/"
+        fail "E7" "ssl-params.conf not found in /etc/apache2/conf-available/"
     fi
 }
 
@@ -362,7 +362,7 @@ check_ssl_vhost_conf() {
     if apache2ctl -S 2>/dev/null | grep -q ":443"; then
         pass "Apache SSL virtual host configured on port 443"
     else
-        fail "E11" "No Apache virtual host found on port 443"
+        fail "E7" "No Apache virtual host found on port 443"
         info "Check /etc/apache2/sites-enabled/default-ssl.conf and run: sudo a2ensite default-ssl"
     fi
 }
@@ -377,7 +377,7 @@ check_apache_modules() {
     if [ ${#missing[@]} -eq 0 ]; then
         pass "Apache modules enabled: ssl, headers"
     else
-        fail "E11" "Apache module(s) not enabled: ${missing[*]}"
+        fail "E7" "Apache module(s) not enabled: ${missing[*]}"
         info "Fix: sudo a2enmod ${missing[*]} && sudo systemctl restart apache2"
     fi
 }
@@ -386,7 +386,7 @@ check_static_route_internal() {
     if ip route show 2>/dev/null | grep -q "10.10.1.0/24 via 192.168.1.1"; then
         pass "Static route to 10.10.1.0/24 via 192.168.1.1 present"
     else
-        fail "E10" "Static route to 10.10.1.0/24 via 192.168.1.1 missing"
+        fail "E6" "Static route to 10.10.1.0/24 via 192.168.1.1 missing"
         info "Add to /etc/netplan/50-cloud-init.yaml: - to: 10.10.1.0/24 / via: 192.168.1.1"
         info "Then: sudo netplan apply"
     fi
@@ -398,7 +398,7 @@ check_custom_webpage() {
     if echo "$content" | grep -qi "Welcome to My Web Server\|welcome.*web server"; then
         pass "Custom web page content detected"
     elif echo "$content" | grep -qi "Apache2 Default Page\|It works"; then
-        fail "E11" "Apache is serving the default page — custom content not configured"
+        fail "E6" "Apache is serving the default page — custom content not configured"
         info "Edit /var/www/html/index.html and replace the default content with your name"
     else
         warn "Could not confirm custom page content — check manually in browser"
@@ -448,17 +448,17 @@ run_internal_gateway() {
     section "IP Forwarding"
     check_ip_forwarding
 
-    section "Part D — Squid Service (E12)"
+    section "Part D — Squid Service (E8)"
     check_service_active "squid" "E12"
     check_squid_port
     check_squid_allow_internal
 
-    section "Part D — Squid ACLs (E13)"
+    section "Part D — Squid ACLs (E9)"
     check_squid_acl_internal
     check_squid_acl_australian
     check_squid_acl_office_hours
 
-    section "Part D — Squid Rule Order (E13)"
+    section "Part D — Squid Rule Order (E9)"
     check_squid_deny_australian
     check_squid_rule_order
 
@@ -472,27 +472,27 @@ run_internal_gateway() {
 run_ubuntu_server() {
     echo -e "\n${BOLD}${CYAN}VM detected: Ubuntu Server${NC}"
 
-    section "Static Route Check (E10)"
+    section "Static Route Check (E6)"
     check_static_route_internal
 
-    section "Part C — Apache Service (E11)"
-    check_service_active "apache2" "E11"
-    check_port_listening "80"  "Apache HTTP"  "E11"
-    check_port_listening "443" "Apache HTTPS" "E11"
+    section "Part C — Apache Service (E7)"
+    check_service_active "apache2" "E7"
+    check_port_listening "80"  "Apache HTTP"  "E7"
+    check_port_listening "443" "Apache HTTPS" "E7"
 
-    section "Part C — Apache Modules (E11)"
+    section "Part C — Apache Modules (E7)"
     check_apache_modules
 
-    section "Part C — SSL Configuration (E11)"
+    section "Part C — SSL Configuration (E7)"
     check_ssl_cert_exists
     check_ssl_params_conf
     check_ssl_vhost_conf
 
-    section "Part C — Web Server Response (E11)"
-    check_http           "http://192.168.1.80"  "Apache HTTP"  "E11"
-    check_https_insecure "https://192.168.1.80" "Apache HTTPS" "E11"
+    section "Part C — Web Server Response (E7)"
+    check_http           "http://192.168.1.80"  "Apache HTTP"  "E7"
+    check_https_insecure "https://192.168.1.80" "Apache HTTPS" "E7"
 
-    section "Part C — Custom Webpage (E11)"
+    section "Part C — Custom Webpage (E7)"
     check_custom_webpage
 
     section "Connectivity (E5)"
@@ -504,26 +504,26 @@ run_ubuntu_server() {
 run_ubuntu_desktop() {
     echo -e "\n${BOLD}${CYAN}VM detected: Ubuntu Desktop${NC}"
 
-    section "Part C — Web Server Access (E11)"
-    check_http           "http://192.168.1.80"  "Ubuntu Server HTTP (direct)"  "E11"
-    check_https_insecure "https://192.168.1.80" "Ubuntu Server HTTPS (direct)" "E11"
+    section "Part C — Web Server Access (E7)"
+    check_http           "http://192.168.1.80"  "Ubuntu Server HTTP (direct)"  "E7"
+    check_https_insecure "https://192.168.1.80" "Ubuntu Server HTTPS (direct)" "E7"
 
-    section "Part D — Squid Proxy Reachability (E12)"
+    section "Part D — Squid Proxy Reachability (E8)"
     if nc -z -w 3 10.10.1.254 8080 2>/dev/null; then
         pass "Squid proxy reachable at 10.10.1.254:8080"
     else
-        fail "E12" "Cannot reach Squid proxy at 10.10.1.254:8080"
+        fail "E8" "Cannot reach Squid proxy at 10.10.1.254:8080"
         info "Ensure Squid is running on Internal Gateway: sudo systemctl status squid"
     fi
 
-    section "Part D — Web Access via Proxy (E12)"
+    section "Part D — Web Access via Proxy (E8)"
     local proxy_code
     proxy_code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 8 \
         --proxy "http://10.10.1.254:8080" "http://192.168.1.80" 2>/dev/null)
     if [[ "$proxy_code" =~ ^[2345] ]]; then
         pass "HTTP $proxy_code — Squid proxy is handling requests (verify page loads in Firefox)"
     else
-        fail "E12" "No response from Squid proxy (HTTP code: ${proxy_code:-no response})"
+        fail "E8" "No response from Squid proxy (HTTP code: ${proxy_code:-no response})"
         info "Ensure Firefox proxy is configured: Settings → Network Settings → 10.10.1.254:8080"
     fi
 
