@@ -66,6 +66,8 @@ options {
 EOF
 echo -e "      ${GREEN}[DONE]${NC} named.conf.options configured"
 
+mkdir -p /etc/bind/zones
+
 echo -e "[3/6] Creating zone definitions..."
 cat > /etc/bind/named.conf.local << EOF
 zone "$DOMAIN" {
