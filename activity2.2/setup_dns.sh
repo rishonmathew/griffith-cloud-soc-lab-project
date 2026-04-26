@@ -95,11 +95,12 @@ cat > /etc/bind/zones/db.$DOMAIN << EOF
             2419200         ; Expire
              604800 )       ; Negative Cache TTL
 ;
-@ IN NS  ns1.$DOMAIN.
-@ IN A   192.168.1.80
+@     IN  NS   ns1.$DOMAIN.
 
-ns1 IN A 192.168.1.1
-www IN A 192.168.1.80
+ns1   IN  A    192.168.1.1
+@     IN  A    192.168.1.80
+www   IN  A    192.168.1.80
+mail  IN  A    192.168.1.80
 EOF
 echo -e "      ${GREEN}[DONE]${NC} Forward zone file created: /etc/bind/db.$DOMAIN"
 
@@ -116,9 +117,11 @@ cat > /etc/bind/zones/db.192.168.1 << EOF
             2419200         ; Expire
              604800 )       ; Negative Cache TTL
 ;
-@ IN NS  ns1.$DOMAIN.
+@ IN NS ns1.$DOMAIN.
+
 1   IN PTR ns1.$DOMAIN.
 80  IN PTR www.$DOMAIN.
+254 IN PTR gateway.$DOMAIN.
 EOF
 echo -e "      ${GREEN}[DONE]${NC} Reverse zone file created"
 
