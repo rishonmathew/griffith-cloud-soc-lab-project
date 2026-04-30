@@ -86,10 +86,10 @@ echo ""
 echo -e "${CYAN}[3/5]${NC} Review what will be installed:"
 echo ""
 echo -e "  ${BOLD}--- /etc/postfix/main.cf ---${NC}"
-sed "s/YOURDOMAIN/$STUDENT_DOMAIN/g" "$TMP_DIR/main.cf.template" | sed 's/^/  /'
+sed "s/DOMAIN/$STUDENT_DOMAIN/g" "$TMP_DIR/main.cf.template" | sed 's/^/  /'
 echo ""
 echo -e "  ${BOLD}--- /etc/postfix/virtual ---${NC}"
-sed "s/YOURDOMAIN/$STUDENT_DOMAIN/g" "$TMP_DIR/virtual.template" | sed 's/^/  /'
+sed "s/DOMAIN/$STUDENT_DOMAIN/g" "$TMP_DIR/virtual.template" | sed 's/^/  /'
 echo ""
 
 read -rp "  Does this look correct? (yes/no): " CONFIRM
@@ -114,12 +114,30 @@ if [ -f /etc/postfix/main.cf ]; then
 fi
 
 # Write main.cf
-sed "s/YOURDOMAIN/$STUDENT_DOMAIN/g" "$TMP_DIR/main.cf.template" > /etc/postfix/main.cf
+sed "s/DOMAIN/$STUDENT_DOMAIN/g" "$TMP_DIR/main.cf.template" > /etc/postfix/main.cf
 echo -e "  ${GREEN}[DONE]${NC} /etc/postfix/main.cf written"
 
+# Verify no unreplaced placeholders remain
+if grep -qw "DOMAIN" /etc/postfix/main.cf; then
+    echo -e "  ${RED}[FAIL]${NC} Unreplaced placeholders found in main.cf — substitution failed:"
+    grep -nw "DOMAIN" /etc/postfix/main.cf | sed 's/^/         /'
+    rm -rf "$TMP_DIR"
+    exit 1
+fi
+echo -e "  ${GREEN}[DONE]${NC} No unreplaced placeholders in main.cf"
+
 # Write virtual
-sed "s/YOURDOMAIN/$STUDENT_DOMAIN/g" "$TMP_DIR/virtual.template" > /etc/postfix/virtual
+sed "s/DOMAIN/$STUDENT_DOMAIN/g" "$TMP_DIR/virtual.template" > /etc/postfix/virtual
 echo -e "  ${GREEN}[DONE]${NC} /etc/postfix/virtual written"
+
+# Verify no unreplaced placeholders remain
+if grep -qw "DOMAIN" /etc/postfix/virtual; then
+    echo -e "  ${RED}[FAIL]${NC} Unreplaced placeholders found in virtual — substitution failed:"
+    grep -nw "DOMAIN" /etc/postfix/virtual | sed 's/^/         /'
+    rm -rf "$TMP_DIR"
+    exit 1
+fi
+echo -e "  ${GREEN}[DONE]${NC} No unreplaced placeholders in virtual"
 
 # Compile virtual alias database
 postmap /etc/postfix/virtual
@@ -190,7 +208,7 @@ echo ""
 echo "  2. Restart Postfix:"
 echo "       sudo systemctl restart postfix"
 echo ""
-echo "  3. Continue to Part C — Dovecot must be installed before"
-echo "     testing end-to-end delivery (the LMTP socket doesn't"
-echo "     exist until Dovecot is configured)."
+echo "  3. Continue to Part C — run setup-dovecot.sh to install Dovecot."
+echo "     The LMTP socket doesn't exist until Dovecot is configured,"
+echo "     so end-to-end delivery will not work until that step is done."
 echo ""
