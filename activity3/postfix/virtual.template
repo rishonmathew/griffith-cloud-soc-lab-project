@@ -6,5 +6,5 @@
 # Format: email-address    local-system-username
 # After editing, always run: sudo postmap /etc/postfix/virtual
 
-desktop-user@YOURDOMAIN    user1
-server-user@YOURDOMAIN     user2
+desktop-user@DOMAIN    user1
+server-user@DOMAIN     user2
