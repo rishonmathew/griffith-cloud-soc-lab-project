@@ -1,7 +1,7 @@
 #!/bin/bash
 # =============================================================================
 # Automarking Script - Activity 2.1: NAT, SSL, Proxy
-# 3821ICT | Griffith University
+# 7015ICT | Griffith University
 # =============================================================================
 # Run this script on any of the four lab VMs after completing the activity.
 # The script will auto-detect which VM it is running on and perform the
@@ -566,7 +566,7 @@ print_summary() {
 echo ""
 echo -e "${BOLD}═══════════════════════════════════════════════════════════════${NC}"
 echo -e "${BOLD} Activity 2.1 Automarker — NAT, SSL & Proxy${NC}"
-echo -e "${BOLD} 3821ICT | Griffith University${NC}"
+echo -e "${BOLD} 7015ICT | Griffith University${NC}"
 echo -e "${BOLD}═══════════════════════════════════════════════════════════════${NC}"
 
 VM=$(detect_vm)
