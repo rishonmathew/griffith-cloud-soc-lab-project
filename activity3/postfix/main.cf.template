@@ -16,8 +16,9 @@ inet_interfaces = all
 inet_protocols = ipv4
 
 # — Local delivery ————————————————————————————————————————————————————————————
-# These domains are delivered locally — not relayed to another server
-mydestination = $myhostname, DOMAIN, localhost.localdomain, localhost
+# Only hostname and localhost here — the domain is handled by virtual_alias_maps
+# Adding the bare domain here causes a "loops back to myself" error
+mydestination = $myhostname, localhost.localdomain, localhost, DOMAIN
 
 # — Relay permissions —————————————————————————————————————————————————————————
 # Hosts in these networks can send mail without authentication
@@ -46,3 +47,5 @@ smtpd_peername_lookup = no
 
 # — Banner ————————————————————————————————————————————————————————————————————
 smtpd_banner = $myhostname ESMTP
+# Relay restrictions — required or smtpd will crash on startup
+smtpd_relay_restrictions = permit_mynetworks, reject_unauth_destination
