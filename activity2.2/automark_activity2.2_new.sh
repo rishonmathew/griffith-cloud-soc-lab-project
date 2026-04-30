@@ -1,7 +1,7 @@
 #!/bin/bash
 # =============================================================================
 # Automarking Script - Activity 2.2: BIND9 DNS Server
-# 3821ICT | Griffith University
+# 7015ICT | Griffith University
 # =============================================================================
 # Run on Internal Gateway, Ubuntu Server, or Ubuntu Desktop.
 # The script auto-detects which VM it is running on.
@@ -403,7 +403,7 @@ print_summary() {
 echo ""
 echo -e "${BOLD}═══════════════════════════════════════════════════════════════${NC}"
 echo -e "${BOLD} Activity 2.2 Automarker — BIND9 DNS Server${NC}"
-echo -e "${BOLD} 3821ICT | Griffith University${NC}"
+echo -e "${BOLD} 7015ICT | Griffith University${NC}"
 echo -e "${BOLD}═══════════════════════════════════════════════════════════════${NC}"
 
 VM=$(detect_vm)
