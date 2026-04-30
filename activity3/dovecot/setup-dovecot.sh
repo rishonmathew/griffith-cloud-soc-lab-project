@@ -83,6 +83,7 @@ echo "    /etc/dovecot/dovecot.conf    → protocols = imap pop3 lmtp"
 echo "    conf.d/10-mail.conf          → mail_location = maildir:~/Maildir"
 echo "    conf.d/10-auth.conf          → disable_plaintext_auth = no"
 echo "    conf.d/10-ssl.conf           → ssl = no"
+echo "    conf.d/20-lmtp.conf          → auth_username_format = %n"
 echo ""
 
 TMP=$(mktemp -d)
@@ -114,6 +115,25 @@ echo -e "  ${GREEN}[DONE]${NC} 10-auth.conf — disable_plaintext_auth and auth_
 # 10-ssl.conf — disable ssl
 sed -i 's|^#*\s*ssl\s*=.*|ssl = no|' /etc/dovecot/conf.d/10-ssl.conf
 echo -e "  ${GREEN}[DONE]${NC} 10-ssl.conf — ssl = no"
+
+# 20-lmtp.conf — auth_username_format
+# Strips @domain from the username so virtual aliases (desktop-user@domain → user1)
+# resolve correctly when LMTP hands off to Dovecot. Without this, Dovecot looks
+# for a system user literally named "desktop-user@domain" and bounces with
+# "User doesn't exist".
+LMTPCONF=/etc/dovecot/conf.d/20-lmtp.conf
+if [ -f "$LMTPCONF" ]; then
+    if grep -q "^auth_username_format" "$LMTPCONF"; then
+        sed -i 's|^auth_username_format.*|auth_username_format = %n|' "$LMTPCONF"
+    else
+        echo "" >> "$LMTPCONF"
+        echo "# Strip @domain from username so virtual aliases resolve to system accounts" >> "$LMTPCONF"
+        echo "auth_username_format = %n" >> "$LMTPCONF"
+    fi
+    echo -e "  ${GREEN}[DONE]${NC} 20-lmtp.conf — auth_username_format = %n"
+else
+    echo -e "  ${YELLOW}[WARN]${NC} 20-lmtp.conf not found — skipping auth_username_format"
+fi
 
 echo ""
 
