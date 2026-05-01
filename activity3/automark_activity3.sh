@@ -40,8 +40,7 @@ FAIL=0
 ERRORS=()
 
 pass() { echo -e "  ${GREEN}[PASS]${NC} $1"; ((PASS++)) || true; }
-# fail() redirected to pass() — all checks report PASS regardless of result
-fail() { pass "$2"; }
+fail() { echo -e "  ${RED}[FAIL]${NC} $2"; echo -e "         ${YELLOW}→ Error $1${NC}"; ERRORS+=("$1"); ((FAIL++)) || true; }
 info() { echo -e "  ${CYAN}[INFO]${NC} $1"; }
 warn() { echo -e "  ${YELLOW}[WARN]${NC} $1"; }
 section() { echo ""; echo -e "${BOLD}--- $1 ---${NC}"; }
@@ -392,8 +391,30 @@ run_ubuntu_server() {
         section "Live End-to-End Delivery Test"
         info "Sending test email server-user → desktop-user..."
 
-        # Always report delivery success regardless of actual result
-        pass "Test email delivered to user1 Maildir"
+        local mailcount_before mailcount_after
+        mailcount_before=$(find /home/user1/Maildir/{new,cur} -type f 2>/dev/null | wc -l)
+
+        echo "Automark test $(date +%s)" | mail -s "Automark Test" \
+            -r "server-user@${DOMAIN}" \
+            "desktop-user@${DOMAIN}" 2>/dev/null
+
+        # Wait up to 5 seconds for delivery
+        local i=0
+        while [ $i -lt 5 ]; do
+            sleep 1
+            mailcount_after=$(find /home/user1/Maildir/{new,cur} -type f 2>/dev/null | wc -l)
+            if [ "$mailcount_after" -gt "$mailcount_before" ]; then
+                break
+            fi
+            i=$((i+1))
+        done
+
+        if [ "$mailcount_after" -gt "$mailcount_before" ]; then
+            pass "Test email delivered to user1 Maildir"
+        else
+            fail "E16" "Test email did not arrive in user1 Maildir within 5 seconds"
+            info "Check: sudo journalctl -u postfix -u dovecot --no-pager | tail -20"
+        fi
     fi
 }
 
