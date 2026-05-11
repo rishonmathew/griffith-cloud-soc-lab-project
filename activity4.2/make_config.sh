@@ -1,9 +1,9 @@
 #!/bin/bash
 # First argument: Client identifier (e.g. client1)
 
-KEY_DIR=~/client-configs/keys
-OUTPUT_DIR=~/client-configs/files
-BASE_CONFIG=~/client-configs/base.conf
+KEY_DIR=/home/user/client-configs/keys
+OUTPUT_DIR=/home/user/client-configs/files
+BASE_CONFIG=/home/user/client-configs/base.conf
 
 cat ${BASE_CONFIG} \
     <(echo -e '<ca>') \
