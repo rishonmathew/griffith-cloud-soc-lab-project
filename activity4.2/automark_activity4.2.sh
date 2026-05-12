@@ -213,10 +213,10 @@ run_internal_gateway() {
 
     if ip addr show tun0 >/dev/null 2>&1; then
 
-        TUNIP=$(ip addr show tun0 | grep inet | awk '{print $2}' | cut -d/ -f1)
+        TUNIP=$(ip -4 addr show tun0 | awk '/inet / {print $2}' | cut -d/ -f1 | tr -d '[:space:]')
 
-        if [ "$TUNIP" = "10.8.0.1" ]; then
-            pass "tun0 has correct IP"
+        if [[ "$TUNIP" == "10.8.0.1" ]]; then
+            pass "tun0 has correct IP (10.8.0.1)"
         else
             fail "tun0 incorrect IP ($TUNIP)"
         fi
