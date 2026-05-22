@@ -1,4 +1,4 @@
-# Griffith Assessment Automarker
+# Griffith Cloud SOC Lab
 
 > Automated configuration-checking scripts for the **7015ICT Cyber Security Operation Centres** lab activities at Griffith University — one self-contained automarker per activity, each with the reference configs, the activity brief, and a demo video.
 
@@ -6,9 +6,9 @@
 
 ## Overview
 
-This repository contains a complete set of automarking scripts — one per lab activity. Each script runs directly on the student's VM, auto-detects which machine it is on, validates the expected configuration, and reports colour-coded pass/fail results with numbered error codes.
+This repository is part of a project to **revamp Griffith University's Cyber Security Operation Centres lab for future students**. It contains a complete set of automarking scripts — one per lab activity. Each script runs directly on the student's VM, auto-detects which machine it is on, validates the expected configuration, and reports colour-coded pass/fail results with numbered error codes.
 
-Scripts are designed to be downloaded by students at the end of each activity for self-checking, and can be used by teaching staff as a consistent marking baseline.
+Scripts are designed to be downloaded by students at the end of each activity for self-checking, and can be used by teaching staff as a consistent marking baseline. The goal is to give future cohorts faster feedback, clearer diagnostics, and a more reliable lab experience.
 
 ---
 
@@ -30,7 +30,7 @@ Scripts are designed to be downloaded by students at the end of each activity fo
 Find your activity above, open its folder, and copy the one-liner from its README. Example for Activity 1:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/rishonmathew/griffith-assessment-automarker/main/activity1/automark_activity1.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/rishonmathew/griffith-cloud-soc-lab/main/activity1/automark_activity1.sh | sudo bash
 ```
 
 > Scripts must be run with `sudo`. Each activity folder has its own README with full usage notes.
@@ -40,7 +40,7 @@ curl -fsSL https://raw.githubusercontent.com/rishonmathew/griffith-assessment-au
 ## Repository structure
 
 ```
-griffith-assessment-automarker/
+griffith-cloud-soc-lab/
 ├── README.md                     ← You are here
 ├── activity1/
 │   ├── automark_activity1.sh
