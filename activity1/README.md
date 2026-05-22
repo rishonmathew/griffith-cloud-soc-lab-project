@@ -21,4 +21,4 @@ curl -fsSL https://raw.githubusercontent.com/rishonmathew/griffith-assessment-au
 - [Activity 1 brief — DMZ Network](docs/NA21_Activity1DMZNetworks.pdf)
 
 ## Demo
-▶️ [Watch on YouTube](https://youtu.be/REPLACE_ACTIVITY1_DMZ)
+▶️ [Watch on YouTube](https://youtu.be/REPLACE_ACTIVITY1_DMZ](https://www.youtube.com/watch?v=SQG-12Ahlw0))
