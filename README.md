@@ -6,9 +6,14 @@
 
 ## Overview
 
-This repository is part of a project to **revamp Griffith University's Cyber Security Operation Centres lab for future students**. It contains a complete set of automarking scripts — one per lab activity. Each script runs directly on the student's VM, auto-detects which machine it is on, validates the expected configuration, and reports colour-coded pass/fail results with numbered error codes.
+This repository is the output of a project to **revamp Griffith University's Cyber Security Operation Centres lab for future students**. The work spanned the whole lab:
 
-Scripts are designed to be downloaded by students at the end of each activity for self-checking, and can be used by teaching staff as a consistent marking baseline. The goal is to give future cohorts faster feedback, clearer diagnostics, and a more reliable lab experience.
+- **Upgraded the VMs** — rebuilt the lab machines on current, stable images.
+- **Upgraded the underlying systems** — refreshed the services and configurations each activity depends on.
+- **Revamped the activity documentation** — updated the briefs so they match the new environment.
+- **Added automarking** — a set of scripts (included here) that help students troubleshoot and verify their own work.
+
+The automarking layer is the part captured in this repo. Each script runs directly on the student's VM, auto-detects which machine it is on, validates the expected configuration, and reports colour-coded pass/fail results with numbered error codes — giving students a fast way to self-check and diagnose issues, and giving teaching staff a consistent marking baseline.
 
 ---
 
