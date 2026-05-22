@@ -25,4 +25,4 @@ curl -fsSL https://raw.githubusercontent.com/rishonmathew/griffith-assessment-au
 - [Activity 2.2 brief — DNS](docs/NA21_Activity2.2_DNS.pdf)
 
 ## Demo
-▶️ [Watch on YouTube](https://youtu.be/REPLACE_ACTIVITY2-2_DNS)
+▶️ [Watch on YouTube](https://youtu.be/lGgGYBYkrsg)
