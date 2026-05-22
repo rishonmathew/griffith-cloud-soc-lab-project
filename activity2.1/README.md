@@ -24,4 +24,4 @@ curl -fsSL https://raw.githubusercontent.com/rishonmathew/griffith-assessment-au
 - [Activity 2.1 brief — Secure Web](docs/NA21_Activity2.1_SecureWeb.pdf)
 
 ## Demo
-▶️ [Watch on YouTube](https://youtu.be/REPLACE_ACTIVITY2-1_SECUREWEB)
+▶️ [Watch on YouTube](https://youtu.be/EsB6C9z67kw)
