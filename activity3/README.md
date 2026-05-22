@@ -23,4 +23,4 @@ curl -fsSL https://raw.githubusercontent.com/rishonmathew/griffith-assessment-au
 - [Activity 3 brief — Mail Server](docs/NA21_Activity3_Mail_Server.pdf)
 
 ## Demo
-▶️ [Watch on YouTube](https://youtu.be/REPLACE_ACTIVITY3_MAILSERVER)
+▶️ [Watch on YouTube](https://youtu.be/nXREaKihDA8)
