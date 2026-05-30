@@ -21,4 +21,4 @@ curl -fsSL https://raw.githubusercontent.com/rishonmathew/griffith-assessment-au
 - [Activity 4.1 brief — Firewalls / nftables](docs/Activity4-1_Firewalls_nftables.pdf)
 
 ## Demo
-▶️ [Watch on YouTube](https://youtu.be/IfUIZxea2NQ)
+▶️ [Watch on YouTube](https://youtu.be/NPkFSc-GHNA)
