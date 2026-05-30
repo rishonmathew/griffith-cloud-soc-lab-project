@@ -23,4 +23,4 @@ curl -fsSL https://raw.githubusercontent.com/rishonmathew/griffith-assessment-au
 - [Activity 4.2 brief — VPN](docs/Activity4-2_VPN.pdf)
 
 ## Demo
-▶️ [Watch on YouTube](https://youtu.be/REPLACE_ACTIVITY4-2_VPN)
+▶️ [Watch on YouTube](https://youtu.be/9rf-OxM6hog)
